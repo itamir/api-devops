@@ -1,46 +1,50 @@
 package br.ufrn.imd.security;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.util.Date;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class SecurityUtils {
 
-    static final long EXPIRATION_TIME = 860_000_000; // 10 days
+    public static final String HEADER_STRING = "Authorization";
     static final byte[] SECRET = "secret".getBytes();
-    static final String TOKEN_PREFIX = "Bearer ";
-    static final String HEADER_STRING = "Authorization";
 
     static Authentication getAuthentication(HttpServletRequest request) {
         var token = request.getHeader(HEADER_STRING);
-
-        if (token != null) {
-            var user = Jwts.parser()
-                    .setSigningKey(SECRET)
-                    .parseClaimsJws(token.replace(TOKEN_PREFIX, ""))
-                    .getBody()
-                    .getSubject();
-
-            if (user != null) {
-                return new UsernamePasswordAuthenticationToken(user, null, List.of());
-            }
+        if (token == null) {
+            return null;
         }
-        return null;
+        return parseTokenSubject(token);
     }
 
-    public static void addAuthorizationToHeader(HttpServletResponse response, Authentication authResult) {
-        var jwt = Jwts.builder()
-                .setSubject(authResult.getName())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS512, SECRET)
-                .compact();
+    private static UsernamePasswordAuthenticationToken parseTokenSubject(String token) {
+        var jwt = JWT.require(Algorithm.HMAC512(SECRET))
+                .withIssuer("auth0")
+                .build()
+                .verify(token);
 
-        response.addHeader("Authorization", "Bearer " + jwt);
+        if(jwt.getExpiresAtAsInstant().isBefore(Instant.now())) {
+            return null;
+        }
+
+        var subject = jwt.getSubject();
+        if(subject == null) {
+            return null;
+        }
+        return new UsernamePasswordAuthenticationToken(subject, null, List.of());
+    }
+
+    public static String buildJwt(String user) {
+        return JWT.create().withIssuer("auth0")
+                .withSubject(user)
+                .withIssuedAt(Instant.now())
+                .withExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .sign(Algorithm.HMAC512(SECRET));
     }
 }
