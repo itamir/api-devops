@@ -15,7 +15,7 @@ public class SecurityConfig {
         httpSecurity.cors().disable().csrf().disable()
                 .authorizeHttpRequests(registry ->
                         registry.antMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                                .antMatchers(HttpMethod.POST, "/login", "/users").permitAll()
+                                .antMatchers(HttpMethod.POST, "/login").permitAll()
                                 .anyRequest().authenticated())
                 .addFilterBefore(new JwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
 

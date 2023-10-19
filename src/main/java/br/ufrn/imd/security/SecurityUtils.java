@@ -20,6 +20,7 @@ public class SecurityUtils {
         if (token == null) {
             return null;
         }
+        token = token.replace("Bearer ", "");
         return parseTokenSubject(token);
     }
 
