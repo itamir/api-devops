@@ -25,8 +25,12 @@ import br.ufrn.imd.repositories.UserRepository;
 @RestController
 public class UserRestService {
 
-	@Autowired
-	private UserRepository repository;
+	private final UserRepository repository;
+	
+	public UserRestService(UserRepository repository) {
+		this.repository = repository;
+	}
+	
 
 	@RequestMapping("/users/{email}")
 	public Users getUsersByEmail(@PathVariable String email) {
